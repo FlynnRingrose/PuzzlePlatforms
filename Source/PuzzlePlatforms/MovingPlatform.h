@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -20,7 +18,11 @@ public:
     
     UPROPERTY(EditAnywhere)
     float Speed = 20;
-	
-	
-	
+    
+    UPROPERTY(EditAnywhere, Meta = (MakeEditWidget = true))
+    FVector TargetLocation;
+    
+private:
+    FVector GlobalTargetLocation;
+    FVector GlobalStartLocation;
 };
