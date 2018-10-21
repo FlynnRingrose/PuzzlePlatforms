@@ -7,6 +7,8 @@
 #include "Blueprint/UserWidget.h"
 
 #include "PlatformTrigger.h"
+#include "MenuSystem/MainMenu.h"
+#include "MenuSystem/MenuWidget.h"
 
 UPuzzlePlatformsGameInstance::UPuzzlePlatformsGameInstance(const FObjectInitializer & ObjectInitializer)
 {
@@ -14,6 +16,11 @@ UPuzzlePlatformsGameInstance::UPuzzlePlatformsGameInstance(const FObjectInitiali
     if (!ensure(MenuBPClass.Class != nullptr)) return;
     
     MenuClass = MenuBPClass.Class;
+    
+    ConstructorHelpers::FClassFinder<UUserWidget> InGameMenuBPClass(TEXT("/Game/MenuSystem/WBP_InGameMenu"));
+    if (!ensure(InGameMenuBPClass.Class != nullptr)) return;
+    
+    InGameMenuClass = InGameMenuBPClass.Class;
 }
 
 void UPuzzlePlatformsGameInstance::Init()
@@ -25,25 +32,33 @@ void UPuzzlePlatformsGameInstance::LoadMenu()
 {
     if (!ensure(MenuClass != nullptr)) return;
     
-    UUserWidget* Menu = CreateWidget<UUserWidget>(this, MenuClass);
+    Menu = CreateWidget<UMainMenu>(this, MenuClass);
     if (!ensure(Menu != nullptr)) return;
     
-    Menu->AddToViewport();
+    Menu->Setup();
     
-    APlayerController* PlayerController = GetFirstLocalPlayerController();
-    if (!ensure(PlayerController != nullptr)) return;
+    Menu->SetMenuInterface(this);
+}
+
+void UPuzzlePlatformsGameInstance::InGameLoadMenu()
+{
+    if (!ensure(InGameMenuClass != nullptr)) return;
     
-    FInputModeUIOnly InputModeData;
-    InputModeData.SetWidgetToFocus(Menu->TakeWidget());
-    InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    UMenuWidget* Menu = CreateWidget<UMenuWidget>(this, InGameMenuClass);
+    if (!ensure(Menu != nullptr)) return;
     
-    PlayerController->SetInputMode(InputModeData);
+    Menu->Setup();
     
-    PlayerController->bShowMouseCursor = true;
+    Menu->SetMenuInterface(this);
 }
 
 void UPuzzlePlatformsGameInstance::Host()
 {
+    if (Menu != nullptr)
+    {
+        Menu->Teardown();
+    }
+    
     UEngine* Engine = GetEngine();
     if (!ensure(Engine != nullptr)) return;
     
@@ -57,6 +72,11 @@ void UPuzzlePlatformsGameInstance::Host()
 
 void UPuzzlePlatformsGameInstance::Join(const FString& Address)
 {
+    if (Menu != nullptr)
+    {
+        Menu->Teardown();
+    }
+    
     UEngine* Engine = GetEngine();
     if (!ensure(Engine != nullptr)) return;
     
@@ -66,4 +86,12 @@ void UPuzzlePlatformsGameInstance::Join(const FString& Address)
     if (!ensure(PlayerController != nullptr)) return;
     
     PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+}
+
+void UPuzzlePlatformsGameInstance::LoadMainMenu()
+{
+    APlayerController* PlayerController = GetFirstLocalPlayerController();
+    if (!ensure(PlayerController != nullptr)) return;
+    
+    PlayerController->ClientTravel("/Game/MenuSystem/MainMenu", ETravelType::TRAVEL_Absolute);
 }
